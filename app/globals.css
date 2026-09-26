@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #fffdfb;
+  --color-blush: #fce7ee;
+  --color-rose: #a95163;
+  --color-ink: #3a2230;
+  --color-muted: #6b4c58;
+  --color-line: #eadfe3;
+  --font-serif: var(--font-fraunces), "Times New Roman", serif;
+  --font-sans: var(--font-karla), "Helvetica Neue", sans-serif;
+}
+
+html {
+  background: var(--color-cream);
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 1px solid var(--color-rose);
+  outline-offset: 3px;
+}

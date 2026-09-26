@@ -11,6 +11,9 @@ export function PushNotice({ onDismiss }: { onDismiss: () => void }) {
           <p className="text-[11px] tracking-[0.22em]">RYTM</p>
           <p className="mt-2 text-[15px] leading-snug">
             Nästa pass börjar där det förra slutade.
+            <span className="mt-1 block">
+              Fortsätt logga så kan Rytm börja visa din utveckling.
+            </span>
           </p>
         </div>
         <button

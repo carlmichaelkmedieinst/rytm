@@ -6,12 +6,12 @@ import { InternalView } from "@/components/InternalView";
 import { ProductView } from "@/components/ProductView";
 import { PushNotice } from "@/components/PushNotice";
 import {
+  advanceToDay,
   bootUser,
   markReturned,
   resetDemo,
   saveWorkout,
   selectFrequency,
-  setCurrentDay,
   setNotificationPermission,
 } from "@/lib/data";
 import { demoHasProgress, productScreen } from "@/lib/format";
@@ -30,6 +30,7 @@ export function RytmApp() {
   const [pushDismissed, setPushDismissed] = useState(false);
   const [pushActive, setPushActive] = useState(false);
   const busyRef = useRef(false);
+  const pendingRef = useRef(0);
 
   const pushReady = Boolean(snapshot?.state.push_sent && !snapshot.state.user_returned);
   if (pushReady !== pushActive) {
@@ -68,6 +69,23 @@ export function RytmApp() {
       cancelled = true;
     };
   }, []);
+
+  function follow(action: Promise<Snapshot>) {
+    pendingRef.current += 1;
+    setBusy(true);
+    setError(null);
+    void action
+      .then((next) => {
+        setSnapshot(next);
+      })
+      .catch((caught) => {
+        setError(caught instanceof Error ? caught.message : "Något gick fel");
+      })
+      .finally(() => {
+        pendingRef.current -= 1;
+        if (pendingRef.current === 0) setBusy(false);
+      });
+  }
 
   async function run(action: () => Promise<Snapshot>) {
     if (busyRef.current) return null;
@@ -145,18 +163,18 @@ export function RytmApp() {
           snapshot={snapshot}
           busy={busy}
           onAdvanceDay={() => {
-            void run(() => setCurrentDay(userId, snapshot.state.current_day + 1));
+            follow(advanceToDay(userId, (currentDay) => currentDay + 1));
           }}
           onNextWindow={() => {
             const expected = snapshot.state.expected_next_workout_at;
             if (expected == null) return;
-            void run(() => setCurrentDay(userId, expected));
+            follow(advanceToDay(userId, expected));
           }}
           onDay7={() => {
-            void run(() => setCurrentDay(userId, 7));
+            follow(advanceToDay(userId, 7));
           }}
           onDay14={() => {
-            void run(() => setCurrentDay(userId, 14));
+            follow(advanceToDay(userId, 14));
           }}
           onGroup={(group: ExperimentGroup) => {
             if (group === snapshot.settings.experiment_group) return;

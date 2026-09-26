@@ -44,8 +44,10 @@ function parseSettings(row: UserSettings): UserSettings {
 function parseState(row: UserState): UserState {
   return {
     ...row,
-    expected_next_workout_at: row.expected_next_workout_at,
-    comparison_day: row.comparison_day,
+    current_day: Number(row.current_day),
+    expected_next_workout_at:
+      row.expected_next_workout_at == null ? null : Number(row.expected_next_workout_at),
+    comparison_day: row.comparison_day == null ? null : Number(row.comparison_day),
     kpi_success: row.kpi_success,
   };
 }
@@ -152,9 +154,8 @@ export async function loadSnapshot(userId: string): Promise<Snapshot> {
   };
 }
 
-export async function applyAutomation(userId: string) {
-  const snapshot = await loadSnapshot(userId);
-  const existingEvents = await eventNames(userId);
+async function persistAutomation(snapshot: Snapshot) {
+  const existingEvents = await eventNames(snapshot.userId);
   const plan = planAutomation({
     settings: snapshot.settings,
     state: snapshot.state,
@@ -162,7 +163,13 @@ export async function applyAutomation(userId: string) {
   });
 
   for (const event of plan.events) {
-    await insertEvent(userId, snapshot.state.current_day, event.event_name, event.payload, true);
+    await insertEvent(
+      snapshot.userId,
+      snapshot.state.current_day,
+      event.event_name,
+      event.payload,
+      true,
+    );
   }
 
   if (Object.keys(plan.statePatch).length === 0) return;
@@ -173,8 +180,48 @@ export async function applyAutomation(userId: string) {
       ...plan.statePatch,
       updated_at: new Date().toISOString(),
     })
-    .eq("user_id", userId);
+    .eq("user_id", snapshot.userId);
   assertOk(error);
+}
+
+export async function applyAutomation(userId: string) {
+  await persistAutomation(await loadSnapshot(userId));
+}
+
+let advanceQueue: Promise<void> = Promise.resolve();
+
+export function advanceToDay(userId: string, targetDay: number | ((currentDay: number) => number)) {
+  const job = advanceQueue.then(() => advanceToDayNow(userId, targetDay));
+  advanceQueue = job.then(
+    () => undefined,
+    () => undefined,
+  );
+  return job;
+}
+
+async function advanceToDayNow(userId: string, targetDay: number | ((currentDay: number) => number)) {
+  const before = await loadSnapshot(userId);
+  const resolved = typeof targetDay === "function" ? targetDay(before.state.current_day) : targetDay;
+  const nextDay = Number(resolved);
+
+  if (!Number.isInteger(nextDay) || nextDay < before.state.current_day) {
+    return before;
+  }
+
+  if (nextDay !== before.state.current_day) {
+    const { error } = await getSupabase()
+      .from("user_state")
+      .update({
+        current_day: nextDay,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId);
+    assertOk(error);
+  }
+
+  const updated = await loadSnapshot(userId);
+  await persistAutomation(updated);
+  return loadSnapshot(userId);
 }
 
 async function finish(userId: string) {
@@ -361,20 +408,6 @@ export async function markReturned(userId: string) {
   return finish(userId);
 }
 
-export async function setCurrentDay(userId: string, day: number) {
-  const snapshot = await loadSnapshot(userId);
-  if (day < snapshot.state.current_day) return snapshot;
-
-  const { error } = await getSupabase()
-    .from("user_state")
-    .update({
-      current_day: day,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId);
-  assertOk(error);
-  return finish(userId);
-}
 
 export async function setNotificationPermission(userId: string, allowed: boolean) {
   const { error } = await getSupabase()

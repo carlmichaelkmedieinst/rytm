@@ -49,7 +49,7 @@ export function InternalView({
       <div className="flex flex-col gap-8 border-b border-line pb-8 lg:flex-row lg:items-end lg:justify-between">
         <h1 className="font-serif text-4xl tracking-[-0.03em]">Intern experimentvy</h1>
         <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
-          <TextButton disabled={busy} onClick={onAdvanceDay}>
+          <TextButton onClick={onAdvanceDay}>
             +1 dag
           </TextButton>
           <TextButton disabled={nextWindowDisabled} onClick={onNextWindow}>

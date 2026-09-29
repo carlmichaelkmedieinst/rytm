@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { InternalView } from "@/components/InternalView";
 import { ProductView } from "@/components/ProductView";
@@ -15,6 +15,7 @@ import {
   setNotificationPermission,
 } from "@/lib/data";
 import { demoHasProgress, productScreen } from "@/lib/format";
+import { readLocale, serverLocale, subscribeLocale, t, translateKnownError, writeLocale, type Locale } from "@/lib/i18n";
 import { getSupabase } from "@/lib/supabase/client";
 import type { ExperimentGroup, Frequency, Snapshot, WorkoutInput } from "@/lib/types";
 
@@ -29,6 +30,7 @@ export function RytmApp() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [pushDismissed, setPushDismissed] = useState(false);
   const [pushActive, setPushActive] = useState(false);
+  const locale = useSyncExternalStore<Locale>(subscribeLocale, readLocale, serverLocale);
   const busyRef = useRef(false);
   const pendingRef = useRef(0);
 
@@ -36,6 +38,14 @@ export function RytmApp() {
   if (pushReady !== pushActive) {
     setPushActive(pushReady);
     setPushDismissed(false);
+  }
+
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
+
+  function selectLocale(next: Locale) {
+    writeLocale(next);
   }
 
   useEffect(() => {
@@ -107,13 +117,15 @@ export function RytmApp() {
 
   if (authError) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center px-6">
-        <p className="font-serif text-sm tracking-[0.28em]">RYTM</p>
-        <h1 className="mt-8 font-serif text-4xl leading-tight tracking-[-0.03em]">
-          Sessionen kunde inte startas.
-        </h1>
-        <p className="mt-6 leading-relaxed text-muted">{authMessage(authError)}</p>
-      </main>
+      <div className="min-h-screen">
+        <AppHeader view={view} locale={locale} onView={setView} onLocale={selectLocale} />
+        <main className="mx-auto flex min-h-[calc(100vh-4.75rem)] max-w-xl flex-col justify-center px-6">
+          <h1 className="font-serif text-4xl leading-tight tracking-[-0.03em]">
+            {t(locale, "sessionFailed")}
+          </h1>
+          <p className="mt-6 leading-relaxed text-muted">{authMessage(locale, authError)}</p>
+        </main>
+      </div>
     );
   }
 
@@ -130,16 +142,21 @@ export function RytmApp() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader view={view} onView={setView} />
+      <AppHeader view={view} locale={locale} onView={setView} onLocale={selectLocale} />
       {error ? (
-        <p className="px-[clamp(1.25rem,4vw,4.5rem)] pt-4 text-sm text-rose">{error}</p>
+        <p className="px-[clamp(1.25rem,4vw,4.5rem)] pt-4 text-sm text-rose">
+          {translateKnownError(locale, error)}
+        </p>
       ) : null}
-      {pushReady && !pushDismissed ? <PushNotice onDismiss={() => setPushDismissed(true)} /> : null}
+      {pushReady && !pushDismissed ? (
+        <PushNotice locale={locale} onDismiss={() => setPushDismissed(true)} />
+      ) : null}
       {view === "product" ? (
         <ProductView
           snapshot={snapshot}
           screen={screen}
           busy={busy}
+          locale={locale}
           onSelectFrequency={(frequency: Frequency) => {
             void run(() => selectFrequency(userId, frequency));
           }}
@@ -162,6 +179,7 @@ export function RytmApp() {
         <InternalView
           snapshot={snapshot}
           busy={busy}
+          locale={locale}
           onAdvanceDay={() => {
             follow(advanceToDay(userId, (currentDay) => currentDay + 1));
           }}
@@ -180,7 +198,7 @@ export function RytmApp() {
             if (group === snapshot.settings.experiment_group) return;
             if (
               demoHasProgress(snapshot) &&
-              !window.confirm("Bytet återställer demon för den här användaren. Fortsätt?")
+              !window.confirm(t(locale, "confirmGroup"))
             ) {
               return;
             }
@@ -192,7 +210,7 @@ export function RytmApp() {
             void run(() => setNotificationPermission(userId, allowed));
           }}
           onReset={() => {
-            if (!window.confirm("Återställ demon för den här användaren?")) return;
+            if (!window.confirm(t(locale, "confirmReset"))) return;
             setIntent("idle");
             void run(() => resetDemo(userId, "test"));
           }}
@@ -202,9 +220,9 @@ export function RytmApp() {
   );
 }
 
-function authMessage(error: string) {
+function authMessage(locale: Locale, error: string) {
   if (error.toLowerCase().includes("anonymous")) {
-    return "Anonym inloggning är avstängd i Supabase-projektet. Aktivera Anonymous under Authentication → Providers.";
+    return t(locale, "sessionFailedAnonymous");
   }
-  return error;
+  return translateKnownError(locale, error);
 }

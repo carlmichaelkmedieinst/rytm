@@ -1,27 +1,28 @@
+import { t, tf, type Locale } from "@/lib/i18n";
 import type { Snapshot, UserState, WorkoutEntry } from "@/lib/types";
 
-export function formatWeight(value: number) {
+export function formatWeight(value: number, locale: Locale = "sv") {
   if (Number.isInteger(value)) return String(value);
-  return value.toLocaleString("sv-SE", { maximumFractionDigits: 2 });
+  return value.toLocaleString(locale === "sv" ? "sv-SE" : "en-GB", { maximumFractionDigits: 2 });
 }
 
-export function formatSet(entry: Pick<WorkoutEntry, "weight" | "reps">) {
-  return `${formatWeight(entry.weight)} kg × ${entry.reps}`;
+export function formatSet(entry: Pick<WorkoutEntry, "weight" | "reps">, locale: Locale = "sv") {
+  return `${formatWeight(entry.weight, locale)} kg × ${entry.reps}`;
 }
 
-export function frequencyLabel(frequency: number | null) {
-  if (frequency == null) return "Inte vald";
-  if (frequency >= 5) return "5+ pass / vecka";
-  return `${frequency} pass / vecka`;
+export function frequencyLabel(frequency: number | null, locale: Locale = "sv") {
+  if (frequency == null) return t(locale, "notSelected");
+  if (frequency >= 5) return t(locale, "frequency5");
+  return tf(locale, "frequencyN", { count: frequency });
 }
 
-export function yesNo(value: boolean) {
-  return value ? "Ja" : "Nej";
+export function yesNo(value: boolean, locale: Locale = "sv") {
+  return value ? t(locale, "yes") : t(locale, "no");
 }
 
-export function dash(value: number | null | boolean) {
+export function dash(value: number | null | boolean, locale: Locale = "sv") {
   if (value == null) return "—";
-  if (typeof value === "boolean") return yesNo(value);
+  if (typeof value === "boolean") return yesNo(value, locale);
   return String(value);
 }
 
@@ -48,7 +49,11 @@ export function comparisonPair(entries: WorkoutEntry[]) {
   return null;
 }
 
-export function comparisonDelta(previous: WorkoutEntry, current: WorkoutEntry) {
+export function comparisonDelta(
+  previous: WorkoutEntry,
+  current: WorkoutEntry,
+  locale: Locale = "sv",
+) {
   const weightDelta = Math.round((current.weight - previous.weight) * 100) / 100;
   const repsDelta = current.reps - previous.reps;
 
@@ -56,21 +61,21 @@ export function comparisonDelta(previous: WorkoutEntry, current: WorkoutEntry) {
     const sign = repsDelta > 0 ? "+" : "−";
     return {
       headline: `${sign}${Math.abs(repsDelta)} reps`,
-      detail: "vid samma vikt",
+      detail: t(locale, "sameWeight"),
     };
   }
 
   if (repsDelta === 0 && weightDelta !== 0) {
     const sign = weightDelta > 0 ? "+" : "−";
     return {
-      headline: `${sign}${formatWeight(Math.abs(weightDelta))} kg`,
-      detail: "vid samma repetitioner",
+      headline: `${sign}${formatWeight(Math.abs(weightDelta), locale)} kg`,
+      detail: t(locale, "sameReps"),
     };
   }
 
   if (weightDelta === 0 && repsDelta === 0) {
     return {
-      headline: "Samma vikt och repetitioner",
+      headline: t(locale, "sameResult"),
       detail: "",
     };
   }
@@ -78,17 +83,19 @@ export function comparisonDelta(previous: WorkoutEntry, current: WorkoutEntry) {
   return null;
 }
 
-export function kpiLabel(state: UserState): "VÄNTAR" | "UPPNÅDD" | "INTE UPPNÅDD" {
+export type KpiStatus = "pending" | "achieved" | "missed";
+
+export function kpiStatus(state: UserState): KpiStatus {
   const achieved =
     state.kpi_success === true ||
     (state.first_comparison_available &&
       state.comparison_day != null &&
       state.comparison_day <= 14);
 
-  if (achieved) return "UPPNÅDD";
-  if (state.kpi_success === false) return "INTE UPPNÅDD";
-  if (state.current_day >= 14 && !state.first_comparison_available) return "INTE UPPNÅDD";
-  return "VÄNTAR";
+  if (achieved) return "achieved";
+  if (state.kpi_success === false) return "missed";
+  if (state.current_day >= 14 && !state.first_comparison_available) return "missed";
+  return "pending";
 }
 
 export type ProductScreen = "onboarding" | "log" | "first-saved" | "later-saved" | "comparison";

@@ -1,19 +1,28 @@
 import type { ReactNode } from "react";
+import { exerciseLabel } from "@/lib/exercises";
 import {
   activeWindow,
   dash,
   formatPayload,
   formatSet,
   frequencyLabel,
-  kpiLabel,
+  kpiStatus,
   shortenId,
   yesNo,
 } from "@/lib/format";
+import { t, tf, type Locale } from "@/lib/i18n";
 import type { ExperimentGroup, Snapshot } from "@/lib/types";
+
+const kpiKeys = {
+  pending: "kpiPending",
+  achieved: "kpiAchieved",
+  missed: "kpiMissed",
+} as const;
 
 export function InternalView({
   snapshot,
   busy,
+  locale,
   onAdvanceDay,
   onNextWindow,
   onDay7,
@@ -24,6 +33,7 @@ export function InternalView({
 }: {
   snapshot: Snapshot;
   busy: boolean;
+  locale: Locale;
   onAdvanceDay: () => void;
   onNextWindow: () => void;
   onDay7: () => void;
@@ -34,6 +44,7 @@ export function InternalView({
 }) {
   const { settings, state, entries, workouts, events } = snapshot;
   const windowId = activeWindow(state.current_day);
+  const status = kpiStatus(state);
   const training = entries.map((entry) => {
     const workout = workouts.find((item) => item.id === entry.workout_id);
     return {
@@ -47,33 +58,31 @@ export function InternalView({
   return (
     <main className="mx-auto w-full max-w-[1180px] px-[clamp(1.25rem,4vw,4.5rem)] py-10">
       <div className="flex flex-col gap-8 border-b border-line pb-8 lg:flex-row lg:items-end lg:justify-between">
-        <h1 className="font-serif text-4xl tracking-[-0.03em]">Intern experimentvy</h1>
+        <h1 className="font-serif text-4xl tracking-[-0.03em]">{t(locale, "internalTitle")}</h1>
         <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
-          <TextButton onClick={onAdvanceDay}>
-            +1 dag
-          </TextButton>
+          <TextButton onClick={onAdvanceDay}>{t(locale, "advanceDay")}</TextButton>
           <TextButton disabled={nextWindowDisabled} onClick={onNextWindow}>
-            Gå till nästa träningsfönster
+            {t(locale, "nextWindow")}
           </TextButton>
           <TextButton disabled={busy || state.current_day >= 7} onClick={onDay7}>
-            Gå till dag 7
+            {tf(locale, "goToDay", { day: 7 })}
           </TextButton>
           <TextButton disabled={busy || state.current_day >= 14} onClick={onDay14}>
-            Gå till dag 14
+            {tf(locale, "goToDay", { day: 14 })}
           </TextButton>
         </div>
       </div>
 
       <div className="mt-10 grid gap-16 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
         <div>
-          <Section title="Användare">
+          <Section title={t(locale, "user")}>
             <dl className="grid grid-cols-2 gap-x-8">
-              <Field label="Användare" value={shortenId(snapshot.userId)} />
-              <Field label="training_frequency" value={frequencyLabel(settings.training_frequency)} />
-              <Field label="notification_permission" value={yesNo(settings.notification_permission)} />
+              <Field label={t(locale, "user")} value={shortenId(snapshot.userId)} />
+              <Field label="training_frequency" value={frequencyLabel(settings.training_frequency, locale)} />
+              <Field label="notification_permission" value={yesNo(settings.notification_permission, locale)} />
               <Field
                 label="experiment_group"
-                value={settings.experiment_group === "test" ? "Testgrupp" : "Kontrollgrupp"}
+                value={settings.experiment_group === "test" ? t(locale, "testGroup") : t(locale, "controlGroup")}
               />
             </dl>
             <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm">
@@ -82,72 +91,76 @@ export function InternalView({
                 pressed={settings.experiment_group === "test"}
                 onClick={() => onGroup("test")}
               >
-                Testgrupp
+                {t(locale, "testGroup")}
               </TextButton>
               <TextButton
                 disabled={busy}
                 pressed={settings.experiment_group === "control"}
                 onClick={() => onGroup("control")}
               >
-                Kontrollgrupp
+                {t(locale, "controlGroup")}
               </TextButton>
               <TextButton
                 disabled={busy}
                 pressed={settings.notification_permission}
                 onClick={() => onPermission(true)}
               >
-                Notiser på
+                {t(locale, "notificationsOn")}
               </TextButton>
               <TextButton
                 disabled={busy}
                 pressed={!settings.notification_permission}
                 onClick={() => onPermission(false)}
               >
-                Notiser av
+                {t(locale, "notificationsOff")}
               </TextButton>
             </div>
           </Section>
 
-          <Section title="Systemstatus">
+          <Section title={t(locale, "systemStatus")}>
             <dl className="grid grid-cols-2 gap-x-8">
               <Field label="current_day" value={String(state.current_day)} />
-              <Field label="first_workout_completed" value={yesNo(state.first_workout_completed)} />
-              <Field label="first_comparison_available" value={yesNo(state.first_comparison_available)} />
-              <Field label="expected_next_workout_at" value={dash(state.expected_next_workout_at)} />
-              <Field label="communication_active" value={yesNo(state.communication_active)} />
-              <Field label="measurement_active" value={yesNo(state.measurement_active)} />
-              <Field label="user_returned" value={yesNo(state.user_returned)} />
-              <Field label="push_sent" value={yesNo(state.push_sent)} />
-              <Field label="comparison_day" value={dash(state.comparison_day)} />
+              <Field label="first_workout_completed" value={yesNo(state.first_workout_completed, locale)} />
+              <Field label="first_comparison_available" value={yesNo(state.first_comparison_available, locale)} />
+              <Field label="expected_next_workout_at" value={dash(state.expected_next_workout_at, locale)} />
+              <Field label="communication_active" value={yesNo(state.communication_active, locale)} />
+              <Field label="measurement_active" value={yesNo(state.measurement_active, locale)} />
+              <Field label="user_returned" value={yesNo(state.user_returned, locale)} />
+              <Field label="push_sent" value={yesNo(state.push_sent, locale)} />
+              <Field label="comparison_day" value={dash(state.comparison_day, locale)} />
             </dl>
-            <p className="mt-5 text-sm leading-relaxed text-muted">
-              Initial testlogik: 2 pass/vecka ger +3 dagar, 3 pass/vecka +2 dagar, 4 eller 5
-              pass/vecka +1 dag från första passet. Det är inte validerat användarbeteende.
-            </p>
+            <p className="mt-5 text-sm leading-relaxed text-muted">{t(locale, "testLogic")}</p>
           </Section>
 
-          <Section title="Tidsfönster">
+          <Section title={t(locale, "timeWindow")}>
             <WindowRow
               active={windowId === "communicate"}
-              title="Dag 0–7"
-              detail="Kommunikation + observation"
+              title={t(locale, "windowCommunicateTitle")}
+              detail={t(locale, "windowCommunicateDetail")}
+              nowLabel={t(locale, "now")}
             />
             <WindowRow
               active={windowId === "observe"}
-              title="Dag 7–14"
-              detail="Endast observation"
+              title={t(locale, "windowObserveTitle")}
+              detail={t(locale, "windowObserveDetail")}
+              nowLabel={t(locale, "now")}
             />
-            <WindowRow active={windowId === "final"} title="Dag 14" detail="Slutlig mätning" />
+            <WindowRow
+              active={windowId === "final"}
+              title={t(locale, "windowFinalTitle")}
+              detail={t(locale, "windowFinalDetail")}
+              nowLabel={t(locale, "now")}
+            />
           </Section>
 
           <Section title="KPI">
-            <p>Första jämförelse inom 14 dagar</p>
+            <p>{t(locale, "kpiTitle")}</p>
             <p
               className={`mt-3 font-serif text-4xl tracking-[-0.03em] ${
-                kpiLabel(state) === "UPPNÅDD" ? "text-rose" : "text-ink"
+                status === "achieved" ? "text-rose" : "text-ink"
               }`}
             >
-              {kpiLabel(state)}
+              {t(locale, kpiKeys[status])}
             </p>
           </Section>
 
@@ -157,32 +170,32 @@ export function InternalView({
             onClick={onReset}
             className="cursor-pointer text-sm text-muted underline decoration-line underline-offset-4 disabled:opacity-50"
           >
-            Återställ demo
+            {t(locale, "resetDemo")}
           </button>
         </div>
 
         <div className="lg:max-h-[calc(100vh-11rem)] lg:overflow-auto lg:pr-2">
-          <Section title="Träningsdata">
+          <Section title={t(locale, "trainingData")}>
             {training.length === 0 ? (
-              <p className="text-muted">Inga pass ännu.</p>
+              <p className="text-muted">{t(locale, "noWorkouts")}</p>
             ) : (
               <ol>
                 {training.map((entry) => (
                   <li key={entry.id} className="border-t border-line py-4">
                     <p className="text-xs tracking-[0.14em] text-muted uppercase">
-                      Dag {entry.simulatedDay}
+                      {tf(locale, "dayLabel", { day: entry.simulatedDay })}
                     </p>
-                    <p className="mt-1 font-serif text-2xl">{entry.exercise_name}</p>
-                    <p className="mt-1">{formatSet(entry)}</p>
+                    <p className="mt-1 font-serif text-2xl">{exerciseLabel(locale, entry.exercise_id)}</p>
+                    <p className="mt-1">{formatSet(entry, locale)}</p>
                   </li>
                 ))}
               </ol>
             )}
           </Section>
 
-          <Section title="Händelselogg">
+          <Section title={t(locale, "eventLog")}>
             {events.length === 0 ? (
-              <p className="text-muted">Inga händelser ännu.</p>
+              <p className="text-muted">{t(locale, "noEvents")}</p>
             ) : (
               <ol>
                 {events.map((event) => {
@@ -190,7 +203,7 @@ export function InternalView({
                   return (
                     <li key={event.id} className="border-t border-line py-4">
                       <p className="text-xs tracking-[0.14em] text-muted uppercase">
-                        Dag {event.simulated_day}
+                        {tf(locale, "dayLabel", { day: event.simulated_day })}
                       </p>
                       <p className="mt-1">{event.event_name}</p>
                       {payload ? <p className="mt-1 text-sm text-muted">{payload}</p> : null}
@@ -228,10 +241,12 @@ function WindowRow({
   active,
   title,
   detail,
+  nowLabel,
 }: {
   active: boolean;
   title: string;
   detail: string;
+  nowLabel: string;
 }) {
   return (
     <div className="flex items-baseline justify-between gap-6 border-t border-line py-3">
@@ -239,7 +254,7 @@ function WindowRow({
         <p className={active ? "text-ink" : "text-muted"}>{title}</p>
         <p className="text-sm text-muted">{detail}</p>
       </div>
-      {active ? <p className="text-xs tracking-[0.14em] text-rose uppercase">Nu</p> : null}
+      {active ? <p className="text-xs tracking-[0.14em] text-rose uppercase">{nowLabel}</p> : null}
     </div>
   );
 }

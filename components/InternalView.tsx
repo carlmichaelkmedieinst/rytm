@@ -219,7 +219,7 @@ export function InternalView({
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mb-10">
       <h2 className="text-xs tracking-[0.16em] text-muted uppercase">{title}</h2>
@@ -228,7 +228,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+export function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="border-t border-line py-3">
       <dt className="text-xs text-muted">{label}</dt>

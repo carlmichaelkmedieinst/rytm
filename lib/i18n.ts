@@ -200,3 +200,10 @@ export function translateKnownError(locale: Locale, message: string) {
   const key = knownErrors[message];
   return key ? t(locale, key) : message;
 }
+
+export function sessionErrorMessage(locale: Locale, error: string) {
+  if (error.toLowerCase().includes("anonymous")) {
+    return t(locale, "sessionFailedAnonymous");
+  }
+  return translateKnownError(locale, error);
+}

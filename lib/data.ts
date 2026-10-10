@@ -1,4 +1,5 @@
-import { daysUntilNextWorkout, planAutomation } from "@/lib/automation";
+import { daysUntilNextWorkout, planAutomation, planLifecycleAutomation } from "@/lib/automation";
+import { DEMO_EMAIL, DEMO_SHARE_ID, maProfile, type DemoSource } from "@/lib/lifecycle";
 import { getSupabase } from "@/lib/supabase/client";
 import type {
   AppEvent,
@@ -156,13 +157,17 @@ export async function loadSnapshot(userId: string): Promise<Snapshot> {
 
 async function persistAutomation(snapshot: Snapshot) {
   const existingEvents = await eventNames(snapshot.userId);
-  const plan = planAutomation({
-    settings: snapshot.settings,
-    state: snapshot.state,
-    existingEvents,
-  });
+  const plans = [
+    planAutomation({
+      settings: snapshot.settings,
+      state: snapshot.state,
+      existingEvents,
+    }),
+    planLifecycleAutomation({ events: snapshot.events, state: snapshot.state }),
+  ];
+  const statePatch = Object.assign({}, ...plans.map((plan) => plan.statePatch));
 
-  for (const event of plan.events) {
+  for (const event of plans.flatMap((plan) => plan.events)) {
     await insertEvent(
       snapshot.userId,
       snapshot.state.current_day,
@@ -172,12 +177,12 @@ async function persistAutomation(snapshot: Snapshot) {
     );
   }
 
-  if (Object.keys(plan.statePatch).length === 0) return;
+  if (Object.keys(statePatch).length === 0) return;
 
   const { error } = await getSupabase()
     .from("user_state")
     .update({
-      ...plan.statePatch,
+      ...statePatch,
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", snapshot.userId);
@@ -461,4 +466,92 @@ export async function resetDemo(userId: string, group: ExperimentGroup = "test")
   assertOk(settings.error);
 
   return loadSnapshot(userId);
+}
+
+export async function joinWaitlist(
+  userId: string,
+  input: { source: DemoSource; launchConsent: boolean; marketingConsent: boolean },
+) {
+  if (!input.launchConsent) throw new Error("Samtycke till lanseringsnotis krävs");
+  const current = await loadSnapshot(userId);
+  if (maProfile(current).lifecycle !== "visitor") return current;
+
+  // The waitlist signup is the start of the journey, so earlier prototype data for this session is cleared.
+  await resetDemo(userId, "test");
+  await insertEvent(
+    userId,
+    0,
+    "waitlist_signup",
+    {
+      email: DEMO_EMAIL,
+      qr_id: input.source.qr_id,
+      utm_content: input.source.utm_content,
+      launch_notification_consent: true,
+      marketing_consent: input.marketingConsent,
+      lifecycle_status: "waitlist",
+    },
+    true,
+  );
+  return finish(userId);
+}
+
+export async function simulateLaunch(userId: string) {
+  const snapshot = await loadSnapshot(userId);
+  const profile = maProfile(snapshot);
+  if (profile.lifecycle !== "waitlist") return snapshot;
+
+  if (profile.launchConsent) {
+    await insertEvent(
+      userId,
+      snapshot.state.current_day,
+      "launch_notification_sent",
+      { to: profile.email, channel: "e-post", consent: "launch_notification_consent", simulated: true },
+      true,
+    );
+  }
+  return finish(userId);
+}
+
+export async function createAccount(userId: string) {
+  const snapshot = await loadSnapshot(userId);
+  const profile = maProfile(snapshot);
+  if (profile.lifecycle !== "waitlist" || !profile.launchNotified) return snapshot;
+
+  await insertEvent(
+    userId,
+    snapshot.state.current_day,
+    "account_created",
+    {
+      email: profile.email,
+      linked_waitlist_profile: true,
+      match_key: "email",
+      simulated: true,
+    },
+    true,
+  );
+
+  const { error } = await getSupabase()
+    .from("user_state")
+    .update({
+      communication_active: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+  assertOk(error);
+
+  return finish(userId);
+}
+
+export async function shareResult(userId: string) {
+  const snapshot = await loadSnapshot(userId);
+  if (maProfile(snapshot).lifecycle !== "activated") return snapshot;
+
+  await insertEvent(
+    userId,
+    snapshot.state.current_day,
+    "content_shared",
+    { share_id: DEMO_SHARE_ID, channel: "simulerad", simulated: true },
+    true,
+  );
+  return finish(userId);
 }

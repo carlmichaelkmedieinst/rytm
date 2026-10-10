@@ -1,4 +1,5 @@
-import type { UserSettings, UserState } from "@/lib/types";
+import { QR_LOCATIONS } from "@/lib/lifecycle";
+import type { AppEvent, UserSettings, UserState } from "@/lib/types";
 
 export type PlannedEvent = {
   event_name: string;
@@ -84,4 +85,45 @@ export function planAutomation({
   }
 
   return { statePatch: patch, events };
+}
+
+export function sourceSegment(qrId: string) {
+  const location = QR_LOCATIONS[qrId];
+  return location
+    ? { source_segment: "platsbunden_qr", source_location: location }
+    : { source_segment: "platsbunden_qr" };
+}
+
+export function planLifecycleAutomation({
+  events,
+  state,
+}: {
+  events: AppEvent[];
+  state: UserState;
+}): AutomationPlan {
+  const names = new Set(events.map((event) => event.event_name));
+  const signup = events.find((event) => event.event_name === "waitlist_signup");
+  const patch: Partial<UserState> = {};
+  const planned: PlannedEvent[] = [];
+
+  if (signup && !names.has("segment_assigned")) {
+    planned.push({
+      event_name: "segment_assigned",
+      payload: sourceSegment(String(signup.payload.qr_id ?? "")),
+    });
+  }
+
+  if (
+    names.has("account_created") &&
+    state.first_comparison_available &&
+    !names.has("activation_communication_stopped")
+  ) {
+    patch.communication_active = false;
+    planned.push({
+      event_name: "activation_communication_stopped",
+      payload: { reason: "first_comparison_available" },
+    });
+  }
+
+  return { statePatch: patch, events: planned };
 }

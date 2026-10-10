@@ -8,13 +8,32 @@ import {
   formatSet,
   frequencyLabel,
   latestEntry,
+  type ProductScreen,
 } from "@/lib/format";
 import { t, type Locale, type MessageKey } from "@/lib/i18n";
 import type { Frequency, Snapshot, WorkoutInput } from "@/lib/types";
 
 const FREQUENCIES: Frequency[] = [2, 3, 4, 5];
 
-export function ProductView({
+type ProductScreensProps = {
+  snapshot: Snapshot;
+  screen: ProductScreen;
+  busy: boolean;
+  locale: Locale;
+  onSelectFrequency: (frequency: Frequency) => void;
+  onSaveWorkout: (input: WorkoutInput) => void;
+  onStartNext: () => void;
+};
+
+export function ProductView(props: ProductScreensProps) {
+  return (
+    <main className="mx-auto flex min-h-[calc(100vh-4.75rem)] w-full max-w-3xl flex-col justify-center px-[clamp(1.25rem,4vw,4.5rem)] py-12">
+      <ProductScreens {...props} />
+    </main>
+  );
+}
+
+export function ProductScreens({
   snapshot,
   screen,
   busy,
@@ -22,17 +41,9 @@ export function ProductView({
   onSelectFrequency,
   onSaveWorkout,
   onStartNext,
-}: {
-  snapshot: Snapshot;
-  screen: "onboarding" | "log" | "first-saved" | "later-saved" | "comparison";
-  busy: boolean;
-  locale: Locale;
-  onSelectFrequency: (frequency: Frequency) => void;
-  onSaveWorkout: (input: WorkoutInput) => void;
-  onStartNext: () => void;
-}) {
+}: ProductScreensProps) {
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-4.75rem)] w-full max-w-3xl flex-col justify-center px-[clamp(1.25rem,4vw,4.5rem)] py-12">
+    <>
       {screen === "onboarding" ? (
         <Onboarding locale={locale} busy={busy} onSelectFrequency={onSelectFrequency} />
       ) : null}
@@ -51,7 +62,7 @@ export function ProductView({
         <LaterSaved locale={locale} snapshot={snapshot} busy={busy} onStartNext={onStartNext} />
       ) : null}
       {screen === "comparison" ? <Comparison locale={locale} snapshot={snapshot} /> : null}
-    </main>
+    </>
   );
 }
 

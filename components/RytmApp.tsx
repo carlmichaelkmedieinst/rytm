@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { InternalView } from "@/components/InternalView";
 import { ProductView } from "@/components/ProductView";
 import { PushNotice } from "@/components/PushNotice";
 import {
   advanceToDay,
-  bootUser,
   markReturned,
   resetDemo,
   saveWorkout,
@@ -15,24 +14,28 @@ import {
   setNotificationPermission,
 } from "@/lib/data";
 import { demoHasProgress, productScreen } from "@/lib/format";
-import { readLocale, serverLocale, subscribeLocale, t, translateKnownError, writeLocale, type Locale } from "@/lib/i18n";
-import { getSupabase } from "@/lib/supabase/client";
-import type { ExperimentGroup, Frequency, Snapshot, WorkoutInput } from "@/lib/types";
+import {
+  readLocale,
+  serverLocale,
+  sessionErrorMessage,
+  subscribeLocale,
+  t,
+  translateKnownError,
+  writeLocale,
+  type Locale,
+} from "@/lib/i18n";
+import type { ExperimentGroup, Frequency, WorkoutInput } from "@/lib/types";
+import { useSnapshot } from "@/lib/useSnapshot";
 
 type View = "product" | "internal";
 
 export function RytmApp() {
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const { snapshot, busy, error, authError, follow, run } = useSnapshot();
   const [view, setView] = useState<View>("product");
   const [intent, setIntent] = useState<"idle" | "log">("idle");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
   const [pushDismissed, setPushDismissed] = useState(false);
   const [pushActive, setPushActive] = useState(false);
   const locale = useSyncExternalStore<Locale>(subscribeLocale, readLocale, serverLocale);
-  const busyRef = useRef(false);
-  const pendingRef = useRef(0);
 
   const pushReady = Boolean(snapshot?.state.push_sent && !snapshot.state.user_returned);
   if (pushReady !== pushActive) {
@@ -48,73 +51,6 @@ export function RytmApp() {
     writeLocale(next);
   }
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function start() {
-      try {
-        const supabase = getSupabase();
-        const sessionResult = await supabase.auth.getSession();
-        if (sessionResult.error) throw sessionResult.error;
-
-        let userId = sessionResult.data.session?.user.id;
-        if (!userId) {
-          const signedIn = await supabase.auth.signInAnonymously();
-          if (signedIn.error) throw signedIn.error;
-          userId = signedIn.data.user?.id;
-        }
-        if (!userId) throw new Error("Anonym session saknas");
-
-        const next = await bootUser(userId);
-        if (!cancelled) setSnapshot(next);
-      } catch (caught) {
-        if (!cancelled) {
-          setAuthError(caught instanceof Error ? caught.message : "Sessionen kunde inte startas");
-        }
-      }
-    }
-
-    void start();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  function follow(action: Promise<Snapshot>) {
-    pendingRef.current += 1;
-    setBusy(true);
-    setError(null);
-    void action
-      .then((next) => {
-        setSnapshot(next);
-      })
-      .catch((caught) => {
-        setError(caught instanceof Error ? caught.message : "Något gick fel");
-      })
-      .finally(() => {
-        pendingRef.current -= 1;
-        if (pendingRef.current === 0) setBusy(false);
-      });
-  }
-
-  async function run(action: () => Promise<Snapshot>) {
-    if (busyRef.current) return null;
-    busyRef.current = true;
-    setBusy(true);
-    setError(null);
-    try {
-      const next = await action();
-      setSnapshot(next);
-      return next;
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Något gick fel");
-      return null;
-    } finally {
-      busyRef.current = false;
-      setBusy(false);
-    }
-  }
-
   if (authError) {
     return (
       <div className="min-h-screen">
@@ -123,7 +59,7 @@ export function RytmApp() {
           <h1 className="font-serif text-4xl leading-tight tracking-[-0.03em]">
             {t(locale, "sessionFailed")}
           </h1>
-          <p className="mt-6 leading-relaxed text-muted">{authMessage(locale, authError)}</p>
+          <p className="mt-6 leading-relaxed text-muted">{sessionErrorMessage(locale, authError)}</p>
         </main>
       </div>
     );
@@ -218,11 +154,4 @@ export function RytmApp() {
       )}
     </div>
   );
-}
-
-function authMessage(locale: Locale, error: string) {
-  if (error.toLowerCase().includes("anonymous")) {
-    return t(locale, "sessionFailedAnonymous");
-  }
-  return translateKnownError(locale, error);
 }

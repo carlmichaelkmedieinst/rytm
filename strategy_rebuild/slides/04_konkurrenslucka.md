@@ -38,6 +38,8 @@ Det lediga är hållningen.
 
 De talar till atleten i oss. Rytm kan tala till människan som bara gillar att träna.
 
+Källor: strong.app · hevyapp.com · fitbod.me · placeringarna i matrisen är vår strategiska tolkning.
+
 ## Layout
 
 En axelkorsning i Figma, tunn linje, vit grund, burgundy på Rytms hållning och på slutraden.
@@ -62,9 +64,9 @@ Text i bilden: Ingen utöver axlar och namn.
 
 ## Talarmanus
 
-Vi jämför inte med klockor eller hälsoplattformar. De direkta konkurrenterna i det här resonemanget är Strong, Hevy och Fitbod.
+Vi jämför inte med klockor eller hälsoplattformar. De direkta konkurrenterna i det här resonemanget är Strong, Hevy och Fitbod. Deras aktuella produktbeskrivningar har kontrollerats på https://www.strong.app/, https://www.hevyapp.com/ och https://fitbod.me/faqs/.
 
-Matrisen är en strategisk tolkning. Vi har inte lagt in deras reklamcitat, eftersom de inte är verifierade för den här exporten.
+Matrisen är en strategisk tolkning baserad på hur konkurrenterna positionerar sina produkter, inte en objektiv marknadsstandard. Vi har inte lagt in några direkta reklamcitat.
 
 Poängen är inte att de saknar enkel logg eller utveckling. Det är redan talat. Rytm vinner inte på att vara ännu en tom ruta i ett funktionsdiagram.
 
@@ -76,6 +78,8 @@ Rytm kan tala till människan som redan gillar att träna, med kontinuitet före
 
 Inga direkta citat används.
 
-[VERIFIERA aktuella konkurrentbudskap före slutexport om direkta citat ska användas.]
+[KÄLLKONTROLL 2026-10-09] https://www.strong.app/ · https://www.hevyapp.com/ · https://fitbod.me/faqs/
+
+[VERIFIERA på nytt före en senare export om konkurrenternas positionering eller slideens formuleringar ändras.]
 
 Apple Watch och Apple Health ska inte läggas till i matrisen.

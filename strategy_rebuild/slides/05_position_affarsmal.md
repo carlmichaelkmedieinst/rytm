@@ -39,6 +39,8 @@ KÄLLA → VÄNTELISTA → KONTO → AKTIVERING → BETALNING
 Aktivering i caset: första meningsfulla jämförelsen.
 first_comparison_available = true
 
+Källa: rytmstudio.se · kontrollerad 2026-10-09
+
 ## Layout
 
 Tre våningar med mycket luft, inte fem KPI-rutor.
@@ -69,7 +71,7 @@ Text i bilden: Ingen utöver kedjan.
 
 Positionen är kulturell och praktisk på samma gång. Rytm är verktyget för den som gillar själva träningen mer än kulturen runt den. Kontinuitet före perfektion. Bevis före brus.
 
-Nuläget är kort, och bara det vi vet: Rytm är inte lanserat. Sajten finns. Väntelistan finns. Man kan lämna e-post för att få besked när det släpps.
+Nuläget är kort, och bara det vi vet från rytmstudio.se: sajten finns, en väntelista finns och man kan lämna e-post för att få besked när appen lanseras. De uppgifterna kontrollerades 2026-10-09.
 
 Affärsmålet är ett test, inte ett löfte om utfall. Kan SKAFFA RYTM skapa efterfrågan, fylla väntelistan, och senare ge aktiverade användare och en mätbar väg till betalning?
 
@@ -80,6 +82,8 @@ Långsiktigt heter kontinuiteten HÅLL RYTMEN. Den raden är retention, inte lan
 ## Intern kontroll
 
 [VERIFIERAT NULÄGE] De fyra punkterna. Produktlöftet hör hemma på slide 06, inte som extra bevis här.
+
+[KÄLLA KONTROLLERAD 2026-10-09] https://rytmstudio.se/
 
 [HYPOTES] Att positionen skapar efterfrågan. Affärsmålet är formulerat som test.
 

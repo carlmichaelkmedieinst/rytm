@@ -1,6 +1,6 @@
 # Rytm — final strategy source of truth
 
-Kort karta. Strategin ligger i slidesen.
+Kort karta över den slutliga 15-slide-strategin. Strategin ligger i slidesen.
 
 ## Position
 
@@ -10,35 +10,47 @@ Kort karta. Strategin ligger i slidesen.
 
 `SKAFFA RYTM.`
 
-## Produktbevis
-
-`Se din utveckling. Inte bara känn den.`
-
-## Kontinuitet
-
-`HÅLL RYTMEN.`
-
-## Kreativt territorium
-
-`VANLIGT JÄRN`
+Kampanjattityd:
 
 `Rå träning. Enkel statistik. Färre grafer.`
 
-## Kommersiell kedja
+## Tre vägar in
 
-`KÄLLA → VÄNTELISTA → KONTO → AKTIVERING → BETALNING`
+- Ambassadör
+- SoMe
+- QR
 
-## Aktivering
+`Ambassadör / SoMe / QR → rytmstudio.se → väntelista`
+
+Alla källor går därefter in i samma lifecycle.
+
+## Lifecycle och affär
+
+`KÄLLA → VÄNTELISTA → KONTO → AKTIVERING → BETALNING / RETENTION`
+
+Aktivering:
 
 `first_comparison_available = true`
 
+Källfält i modellen:
+
+`ambassador_id · utm_* · qr_id · föreslaget share_id`
+
+## Advocacy efter aktivering
+
+`Sprid träningsglädjen!`
+
+Detta är en post-activation CTA, inte en ny kampanjplattform.
+
+`AKTIVERING → DELNING → NY TRAFIK`
+
 ## Huvudrekommendationer
 
-1. Ta en tydligare kulturell position. SKAFFA RYTM. För människor som gillar träning mer än träningskultur.
-2. Testa platsbunden QR på utegym. Unikt `qr_id` per plats.
-3. Använd trovärdiga människor. Inget samarbete finns.
-4. Testa budskap innan medierna skalas.
-5. Låt beteendet visa vem målgruppen egentligen är.
+1. Ta en tydlig kulturell position.
+2. Testa Ambassadör, SoMe och platsbunden QR som tre vägar till samma väntelista.
+3. Spara källan genom hela resan.
+4. Låt beteendet styra automationen.
+5. Gör aktiveringen till en delningsbar händelse.
 
 ## VG+ huvudresa
 
@@ -49,6 +61,8 @@ QR är källa. Triggern är `waitlist_signup`. Matchningen väntelista → konto
 ## Source of truth
 
 `strategy_rebuild/slides/`
+
+Mappen innehåller exakt 15 aktiva slidefiler.
 
 Öppna frågor som behöver mänsklig kontroll: `strategy_rebuild/VERIFICATION.md`.
 

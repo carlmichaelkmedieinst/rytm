@@ -1,18 +1,30 @@
+import QRCode from "qrcode";
 import type { Metadata } from "next";
-import { DemoApp } from "@/components/demo/DemoApp";
+import { PresenterScreen } from "@/components/demo/PresenterScreen";
+import { presentationUrl, publicDemoBase } from "@/lib/demo/public-url";
 
 export const metadata: Metadata = {
-  title: "Rytm · Marketing Automation-demo",
+  title: "Rytm · Skaffa Rytm",
 };
 
-function param(value: string | string[] | undefined) {
-  return typeof value === "string" ? value.trim().slice(0, 64) : "";
+function svgMarkup(svg: string) {
+  return svg.replace(/<\?xml[\s\S]*?\?>/, "").trim();
 }
 
-export default async function DemoPage({ searchParams }: PageProps<"/demo">) {
-  const query = await searchParams;
-  const qrId = param(query.qr_id);
-  const source = qrId ? { qr_id: qrId, utm_content: param(query.utm_content) } : null;
+export default async function DemoPage() {
+  const base = publicDemoBase(process.env.NEXT_PUBLIC_DEMO_BASE_URL);
+  const url = base ? presentationUrl(base) : null;
+  const svg = url
+    ? svgMarkup(
+        await QRCode.toString(url, {
+          type: "svg",
+          margin: 4,
+          errorCorrectionLevel: "H",
+          width: 720,
+          color: { dark: "#3a2230", light: "#ffffff" },
+        }),
+      )
+    : null;
 
-  return <DemoApp source={source} />;
+  return <PresenterScreen url={url} svg={svg} />;
 }

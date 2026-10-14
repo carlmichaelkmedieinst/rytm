@@ -27,6 +27,21 @@ export function writeStoredGeneration(generationId: string) {
 
 export function clearStoredGeneration() {
   sessionStorage.removeItem(GENERATION_KEY);
+  clearHeldRegistrationToken();
+}
+
+let heldRegistration: { generationId: string; token: string } | null = null;
+
+function holdRegistrationToken(generationId: string, token: string) {
+  heldRegistration = { generationId, token };
+}
+
+export function clearHeldRegistrationToken() {
+  heldRegistration = null;
+}
+
+function heldRegistrationToken(generationId: string) {
+  return heldRegistration?.generationId === generationId ? heldRegistration.token : null;
 }
 
 export function userFacingError(error: unknown) {
@@ -47,7 +62,12 @@ function publicPayload(payload: Record<string, unknown>) {
   return next;
 }
 
-async function demoRequest(path: string, token: string | null, body?: Record<string, unknown>) {
+async function demoRequest(
+  path: string,
+  token: string | null,
+  body?: Record<string, unknown>,
+  options?: { keepRegistrationToken?: boolean },
+) {
   let response: Response;
   try {
     response = await fetch(path, {
@@ -71,7 +91,8 @@ async function demoRequest(path: string, token: string | null, body?: Record<str
       typeof payload?.message === "string" ? payload.message : "Demonstrationen kunde inte sparas. Försök igen.";
     throw new DemoClientError(code, message);
   }
-  return publicPayload(payload ?? {});
+  const data = payload ?? {};
+  return options?.keepRegistrationToken ? data : publicPayload(data);
 }
 
 let pendingAccessToken: Promise<string> | null = null;
@@ -129,12 +150,58 @@ export async function joinWaitlist(
   localPart: string,
   launchConsent: boolean,
 ) {
-  return demoRequest("/api/demo/waitlist", token, {
+  const payload = await demoRequest(
+    "/api/demo/waitlist",
+    token,
+    {
+      generation_id: generationId,
+      local_part: localPart,
+      launch_consent: launchConsent,
+      marketing_consent: false,
+    },
+    { keepRegistrationToken: true },
+  );
+  const registration = payload.registration_token;
+  if (typeof registration === "string" && registration) holdRegistrationToken(generationId, registration);
+  return publicPayload(payload);
+}
+
+export async function simulateLaunch(token: string, generationId: string) {
+  return demoRequest("/api/demo/launch", token, { generation_id: generationId });
+}
+
+async function pullRegistrationToken(token: string, generationId: string) {
+  const held = heldRegistrationToken(generationId);
+  if (held) return held;
+  const payload = await demoRequest(
+    "/api/demo/registration",
+    token,
+    { generation_id: generationId },
+    { keepRegistrationToken: true },
+  );
+  const registration = payload.registration_token;
+  if (payload.available === true && typeof registration === "string" && registration) {
+    holdRegistrationToken(generationId, registration);
+    return registration;
+  }
+  return null;
+}
+
+export async function createAccount(token: string, generationId: string) {
+  const registration = await pullRegistrationToken(token, generationId);
+  if (!registration) {
+    throw new DemoClientError("invalid_token", "Den simulerade kopplingen kunde inte återställas.");
+  }
+  const payload = await demoRequest("/api/demo/account", token, {
     generation_id: generationId,
-    local_part: localPart,
-    launch_consent: launchConsent,
-    marketing_consent: false,
+    registration_token: registration,
   });
+  clearHeldRegistrationToken();
+  return payload;
+}
+
+export async function registerWorkout(token: string, generationId: string, step: "first" | "second") {
+  return demoRequest("/api/demo/workouts", token, { generation_id: generationId, step });
 }
 
 export async function fetchTimeline(token: string, generationId: string) {

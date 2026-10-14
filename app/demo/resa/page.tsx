@@ -3,7 +3,7 @@ import { ParticipantJourney } from "@/components/demo/ParticipantJourney";
 import { sourceFromParam } from "@/lib/demo/source";
 
 export const metadata: Metadata = {
-  title: "Rytm · Väntelista",
+  title: "Rytm · Din resa",
 };
 
 function param(value: string | string[] | undefined) {
